@@ -1,6 +1,6 @@
 import * as BABYLON from 'babylonjs'
 import { Action, ActionManager, Engine, ExecuteCodeAction, Scalar, TransformNode } from 'babylonjs';
-import PlayerStateMachine from './playerState';
+import {PlayerStateMachine} from './playerState';
 
 export class inputController {
     public inputMap: any = {}

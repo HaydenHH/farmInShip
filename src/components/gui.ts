@@ -36,12 +36,12 @@ class UI {
 
         const box = new GUI.Rectangle()
         box.width='1px'
-        box.height='20px'
+        box.height='10px'
         // box.color='red'
         box.horizontalAlignment=GUI.Control.HORIZONTAL_ALIGNMENT_LEFT
         box.background='#2CE2FB'
         box.thickness=0
-        box.left='13%'
+        box.left='15%'
         box.top='46%'
         this.box_speed = box
         this.ui.addControl(this.box_speed)
@@ -50,7 +50,8 @@ class UI {
     udpate() {
         this.box_speedWidth++
         if(this.text_speed)this.text_speed.text = String(this.player?.rotationQuaternion?._y.toFixed(2));
-        if(this.box_speed&&!this.stateMachine.states.stop.isIn) this.box_speed.width = Math.abs(Math.sin(this.box_speedWidth/10)*300) + 'px'
+        // if(this.box_speed&&!this.stateMachine.states.stop.isIn) this.box_speed.width = Math.abs(Math.sin(this.box_speedWidth/10)*300) + 'px'
+        if(this.box_speed&&!this.stateMachine.states.stop.isIn) this.box_speed.width = Math.abs((this.player?.physicsImpostor?.getLinearVelocity()?.z||1))*10 + 'px'
 
     }
 }

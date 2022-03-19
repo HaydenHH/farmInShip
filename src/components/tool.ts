@@ -32,14 +32,58 @@ const MakePhysicsObject = (newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene
             m.scaling.x = Math.abs(m.scaling.x)
             m.scaling.y = Math.abs(m.scaling.y)
             m.scaling.z = Math.abs(m.scaling.z)
-            m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.BoxImpostor, { mass: mass}, scene);
+            m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.BoxImpostor, { mass: mass,friction: 13}, scene);
             // m.visibility = 0
         }
     })
     
     // Scale the root object and turn it into a physics impsotor
     physicsRoot.scaling.scaleInPlace(scaling)
-    physicsRoot.physicsImpostor = new BABYLON.PhysicsImpostor(physicsRoot, BABYLON.PhysicsImpostor.NoImpostor, { mass:mass}, scene);
+    physicsRoot.physicsImpostor = new BABYLON.PhysicsImpostor(physicsRoot, BABYLON.PhysicsImpostor.BoxImpostor, { mass:mass,friction:1}, scene);
+    
+    return physicsRoot
+}
+
+
+const MakeCarPhysicsObject = (newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=3.3)=>{
+    // Create physics root and position it to be the center of mass for the imported mesh
+    var physicsRoot = new BABYLON.Mesh("physicsRoot", scene);
+    physicsRoot.position.y += 0.1
+
+    // For all children labeled box (representing colliders), make them invisible and add them as a child of the root object
+    newMeshes.forEach((m, i)=>{
+        if(m.name.includes("box")||m.name.includes("Box")){
+            m.isVisible = false
+            m.material!.wireframe=true         
+            physicsRoot.addChild(m)
+        }
+    })
+
+    // Add all root nodes within the loaded gltf to the physics root
+    newMeshes.forEach((m, i)=>{
+        if(m.parent == null){
+            physicsRoot.addChild(m)
+        }
+    })
+
+    // Make every collider into a physics impostor
+    physicsRoot.getChildMeshes().forEach((m)=>{
+        // console.log(m.name);
+        
+        if(m.name.includes('box')||m.name.includes('Box')||m.name==='Box'){
+            // console.log(m.name);
+            
+            m.scaling.x = Math.abs(m.scaling.x)
+            m.scaling.y = Math.abs(m.scaling.y)
+            m.scaling.z = Math.abs(m.scaling.z)
+            m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.BoxImpostor, { mass: mass,friction: 3}, scene);
+            // m.visibility = 0
+        }
+    })
+    
+    // Scale the root object and turn it into a physics impsotor
+    physicsRoot.scaling.scaleInPlace(scaling)
+    physicsRoot.physicsImpostor = new BABYLON.PhysicsImpostor(physicsRoot, BABYLON.PhysicsImpostor.BoxImpostor, { mass:mass,friction:5}, scene);
     
     return physicsRoot
 }
@@ -92,4 +136,9 @@ class RayCaster{
         
 }
 
-export  {MakePhysicsObject,RayCaster}
+
+    
+   
+
+
+export  {MakePhysicsObject,MakeCarPhysicsObject,RayCaster}

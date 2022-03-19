@@ -2,11 +2,10 @@ import * as BABYLON from 'babylonjs'
 import * as BEHAVIOR from './playerBehavior'
 abstract class State{
     abstract stateMachine:StateMachine
-    abstract nextState?:State
     isIn:Boolean=false
     isTransition?:Boolean
-    abstract enter(nextState?:State):void
-    abstract exit(nextState?:State):void
+    abstract enter(para?:any):void
+    abstract exit():Promise<void>
     abstract update():void
 }
 
@@ -16,13 +15,10 @@ interface MachineStates{
 
 abstract class StateMachine{
     context:unknown
-    abstract lastState?:State
     states:MachineStates={}
-    activeState:State|null = null
-    currentStates:State[]=[]
-    isExiting:Boolean=false
     abstract isTransition:Boolean
-    abstract changeState(state:State):void
+    // abstract changeState(state:State):void
+    abstract inState(state:State):void
     abstract updateState():void 
 }
 
@@ -32,22 +28,24 @@ abstract class StateMachine{
 class PlayerStop implements State{
     stateMachine: StateMachine
     isIn: Boolean=false
+    isTransition=false
     enter(): void {
         this.isIn=true
-        this.stateMachine.lastState=this
+
         
     }
-    exit(nextState?:State): void {
-        const stateArray=[1,2,3]
-        new Promise((res,rej)=>{
-
-        })
-        this.isIn=false
+    async exit(nextState?:State): Promise<void> {
+        
+       
+        this.isIn = false
+        
         
     }
     update(): void {
 
+
       BEHAVIOR.PlayerStopBehavior(this.stateMachine.context as BABYLON.AbstractMesh)  
+    //   console.log(this.isIn);
       
         // this.exit()
     }
@@ -66,8 +64,13 @@ class PlayerRotating implements State{
        this.exit()
        
     }
-    exit(nextState?:State): void {
-
+    exit(nextState?:State): Promise<void> {
+        return new Promise((res,rej)=>{
+            // setTimeout(() => {
+            //     this.isIn=false
+            // }, 100);
+            res()
+        })
         
     }
     update(): void {
@@ -86,18 +89,22 @@ class PlayerSlowDown implements State{
     isIn: Boolean=false
     stateMachine: StateMachine
     nextState?: State | undefined
-    enter(nextState:State): void {
+    enter(): void {
         this.isIn=true
         
     }
-    exit(nextState?:State): void {
-        this.isIn=false
+    exit(nextState?:State): Promise<void> {
+        return new Promise((res,rej)=>{
+            
+            setTimeout(() => {
+                this.isIn=false
+                res()
+            }, 150);
+        })
     }
     update(): void {
-        // console.log('过度过度过度');
-        const player = (this.stateMachine.context as BABYLON.AbstractMesh)
-        
-        player.rotate(BABYLON.Axis.X,-Math.PI/300,BABYLON.Space.LOCAL)
+        console.log('过度过度过度');
+        BEHAVIOR.PlayerSlowdownBehavior(this.stateMachine.context as BABYLON.AbstractMesh)  
         this.exit()
     }
     constructor(stateMachine:StateMachine){
@@ -110,19 +117,35 @@ class PlayerSlowDown implements State{
 class PlayerMove implements State{
     isIn: Boolean=false
     stateMachine: StateMachine
+    isTransition?: Boolean | undefined=false
+    speed=0
     enter(): void {
-        // this.stateMachine.activeState = this
+
+        this.speed+=0.1
         this.isIn=true
+
         this.stateMachine.states.stop.exit()
     }
-    exit(nextState?:State): void {
+    async exit(nextState?:State): Promise<void> {
+        this.isTransition=true
+        const transitionStates=[this.stateMachine.states.slowDown,this.stateMachine.states.stop,this.stateMachine.states.slowDown]
+        for(let [i,state] of transitionStates.entries()){
+ 
+            state.enter()
+            await state.exit()           
+        }
         this.isIn=false
-        // this.stateMachine.states.slowDown.enter()
+        this.speed/=2
+
     }
     update(): void {
-
-        BEHAVIOR.PlayerGoForwardBehavior(this.stateMachine.context as BABYLON.AbstractMesh,5)
-        this.exit()
+        if(this.speed<0){
+            this.exit()
+        }else{
+            this.speed-=0.09
+        }
+        BEHAVIOR.PlayerGoForwardBehavior(this.stateMachine.context as BABYLON.AbstractMesh,this.speed)
+        // this.exit()
     }
     constructor(stateMachine:StateMachine){
         this.stateMachine = stateMachine
@@ -136,11 +159,14 @@ class PlayerBack implements State{
     stateMachine: StateMachine
     enter(): void {
         this.stateMachine.states.stop.exit()
+        if(this.stateMachine.states.move.isIn)this.stateMachine.states.move.exit()
         this.isIn=true
     }
-    exit(nextState?:State): void {
-        this.isIn=false
-        // this.stateMachine.states.slowDown.enter()
+    exit(nextState?:State): Promise<void> {
+        return new Promise((res,rej)=>{
+            this.isIn=false
+            res()
+        })
     }
     update(): void {
 
@@ -159,12 +185,7 @@ class PlayerBack implements State{
 class PlayerStateMachine implements StateMachine{
     context:BABYLON.AbstractMesh
     states:MachineStates={}
-    activeState: State|null=null
-    isExiting:Boolean = false
-    nextState:State|null = null
     isTransition=false
-    currentStates:State[]=[]
-    lastState:State
     constructor(context:BABYLON.AbstractMesh){
         this.context=context
         const move = new PlayerMove(this)
@@ -178,7 +199,6 @@ class PlayerStateMachine implements StateMachine{
             move,back,stop,slowDown,rotateL,rotateR
         }
 
-        this.lastState = this.states.stop
 
         
     }
@@ -187,17 +207,9 @@ class PlayerStateMachine implements StateMachine{
         state.enter()
 
     }
-    changeState(state:State): void {   
-        if(this.activeState!=state&&!this.isTransition){
-            
-            this.activeState?.exit(state)
-        }     
-        
-    }
+
     updateState(): void {
 
-        // this.activeState?.update()
-      
        Object.values(this.states).forEach(state=>{
            state.isIn&&state.update()
        })
@@ -207,4 +219,4 @@ class PlayerStateMachine implements StateMachine{
     
 }
 
-export default PlayerStateMachine
+export {PlayerStateMachine,State,StateMachine,MachineStates}

@@ -4,8 +4,12 @@ import 'babylonjs-loaders'
 import UI from './gui';
 import './playerController'
 import { inputController } from './playerController'
-import PlayerStateMachine from './playerState'
-import { MakePhysicsObject, RayCaster } from './tool'
+import {PlayerStateMachine} from './playerState'
+import { MakeCarPhysicsObject, MakePhysicsObject,  RayCaster } from './tool'
+import * as OBJBEHAVIOR from './objBehavior'
+import { Container } from 'babylonjs-gui';
+import { PhysicalGameObejct } from './objects';
+import { ContainerStateMachine } from './containerState';
 // import * as CANNON from  'cannon'
 
 
@@ -21,49 +25,58 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     const scene = new BABYLON.Scene(engine)
     scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
     scene.fogDensity = 0.01
-    scene.fogStart = 50.0;
-    scene.fogEnd = 300.0;
+    scene.fogStart = 150.0;
+    scene.fogEnd = 500.0;
     scene.fogColor = BABYLON.Color3.FromHexString('#DAEEEC')
     var hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("./bg2.env", scene);
 
     hdrTexture.gammaSpace = false;
     scene.environmentTexture = hdrTexture;
-
-    scene.enablePhysics(new BABYLON.Vector3(0, -110, 0), new BABYLON.AmmoJSPlugin());
+    
+    // scene.enablePhysics(new BABYLON.Vector3(0, -110, 0), new BABYLON.AmmoJSPlugin());
+    const physicsEngine = new BABYLON.PhysicsEngine(new BABYLON.Vector3(0, -110, 0), new BABYLON.AmmoJSPlugin());
+    scene.enablePhysics(new BABYLON.Vector3(0, -110, 0), new BABYLON.AmmoJSPlugin())
     scene.clearColor = BABYLON.Color4.FromHexString('#000000')
 
-    const skyBox = BABYLON.MeshBuilder.CreateBox('skyBox',{size:1000},scene)
+    const skyBox = BABYLON.MeshBuilder.CreateBox('skyBox',{size:2000},scene)
     const skyBoxMtr = new BABYLON.StandardMaterial('skyMtr',scene)
     skyBoxMtr.reflectionTexture = hdrTexture
     skyBoxMtr.backFaceCulling = false;
     skyBox.material = skyBoxMtr
     // skyBoxMtr.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
 
-    const light = new BABYLON.HemisphericLight('mainLight', new BABYLON.Vector3(3, 3, 3), scene)
+    const light = new BABYLON.PointLight('mainLight', new BABYLON.Vector3(3, 23, 3), scene)
+    light.radius=20
+    light.intensity=12
+    // var light = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(-1, 1, -1), scene);
     // const camera = new BABYLON.UniversalCamera('cam', new BABYLON.Vector3(39, 30, 9), scene)
     const camera = new BABYLON.FollowCamera('cam', new BABYLON.Vector3(0, 0, 0), scene)
+    camera.attachControl(true)
 
     var ScreenWidth = engine.getRenderWidth();
     var ScreenHeight = engine.getRenderHeight();
     let cameraZoom = 50
-    // camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
-    // camera.orthoTop = ScreenHeight / cameraZoom;
-    // camera.orthoBottom = -ScreenHeight / cameraZoom;
-    // camera.orthoLeft = -ScreenWidth / cameraZoom;
-    // camera.orthoRight = ScreenWidth / cameraZoom;
+    // let cameraZoom = 20
+    
+    camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+    camera.orthoTop = ScreenHeight / cameraZoom;
+    camera.orthoBottom = -ScreenHeight / cameraZoom;
+    
+    camera.orthoLeft = -ScreenWidth / cameraZoom;
+    camera.orthoRight = ScreenWidth / cameraZoom;
 
 
     camera.position.x = 130
     camera.position.y = 30
     camera.radius = 60
     camera.rotationOffset = -80;
-    camera.heightOffset = 13
+    camera.heightOffset = 23
     // camera.offse
     // camera.maxZ =1300
 
     var defaultPipeline = new BABYLON.DefaultRenderingPipeline("default", true, scene, [camera]);
-    defaultPipeline.bloomEnabled = true;
-    // defaultPipeline.bloomWeight=1.2
+    // defaultPipeline.bloomEnabled = true;
+    defaultPipeline.bloomWeight=0.3
 
    
 
@@ -88,14 +101,17 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     // gndMtr.diffuseTexture = new BABYLON.Texture('./gndDiff.png', scene)
 
     gndMtr.emissiveTexture = new BABYLON.Texture('./gndDiff.png', scene)
-    gndMtr.emissiveColor=BABYLON.Color3.Red()
+    gndMtr.emissiveColor=BABYLON.Color3.White()
     // gndMtr.useEmissiveAsIllumination=true
     gndMtr.ambientTexture=new BABYLON.Texture('./AO.png', scene)
     
     gndMtr.diffuseColor = BABYLON.Color3.FromHexString('#CA260F')
 
-    gndMtr.specularColor = BABYLON.Color3.White()
+    gndMtr.specularColor = BABYLON.Color3.Red()
     gnd.material = gndMtr
+
+    var shadowGenerator = new BABYLON.ShadowGenerator(1024, light);
+    gnd.receiveShadows = true;
 
     // const box = BABYLON.MeshBuilder.CreateBox('box',{size:7})
     // box.position = new BABYLON.Vector3(10,50,10)
@@ -117,6 +133,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     }
 
     const maiziGroup:BABYLON.DeepImmutable<BABYLON.AbstractMesh>[]=[]
+    const containerGroup:PhysicalGameObejct[]=[]
 
     const loadModel = async () => {
 
@@ -124,23 +141,27 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
 
 
         const carAsset = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmerCar.glb', scene)
-
-        car = MakePhysicsObject(carAsset.meshes, scene, 1,10)
+        // const car = new PhysicalGameObejct('car',physicsEngine,carAsset.meshes,scene,1,.5)
+        car = MakeCarPhysicsObject(carAsset.meshes, scene, 1,.5)
+        car.position.x = -10
+        car.position.z = 25
 
         const carCaster = car.getDescendants().find(x => x.name === 'caster')
         // rayCaster = new RayCaster(carCaster as BABYLON.AbstractMesh, scene)
         carState = new PlayerStateMachine(car)
         input = new inputController(scene, carState)
+        
+        for(let mesh of car.getChildMeshes()){
+            shadowGenerator?.getShadowMap()?.renderList?.push(mesh);
+        }
 
+        
 
-
-        car.position.y = 10
-        car.position.x = 30
 
 
         const fishAsset = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'fishAni.glb', scene)
-        const fish = MakePhysicsObject(fishAsset.meshes, scene, 0.4)
-        fish.position.y = 3
+        const fish = MakePhysicsObject(fishAsset.meshes, scene, 0.4,0)
+        fish.position.y = 23
         player = fish
         // cameraTarget.parent = car
         const tar = car.getDescendants().find(x => x.name.includes('camTar'))
@@ -165,20 +186,38 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
 
         }
 
+       
+
         for (let i = 0; i < 3; i++) {
-
             for (let y = 0; y < 3; y++) {
-                const food = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'foodBox.glb', scene)
+                const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmerBox.glb', scene)
 
-                const foodBox = MakePhysicsObject(food.meshes, scene, 5, 50)
-                foodBox.position.x = i * 40 - 50
-                foodBox.position.z = y * 40 - 50
-
-                // foodGroup.push(foodBox as BABYLON.DeepImmutable<BABYLON.AbstractMesh>)
-
+                const c = new PhysicalGameObejct('foodContainer',physicsEngine,assets.meshes,scene,1,.1)
+                containerGroup.push(c)
+                for(let mesh of c.getChildMeshes()){
+                    shadowGenerator?.getShadowMap()?.renderList?.push(mesh);
+                    mesh.receiveShadows=true
+                }
             }
 
         }
+
+
+        for (let i = 0; i < 3; i++) {
+            for (let y = 0; y < 3; y++) {
+                const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmP.glb', scene)
+
+                const c = new PhysicalGameObejct('farmPlatform',physicsEngine,assets.meshes,scene,1,12.1)
+                c.position.x = -i*5
+                c.position.z = -y*5
+                
+            }
+
+        }
+
+
+        
+
     }
 
 
@@ -187,11 +226,17 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
 
     
 
-    let selected:BABYLON.AbstractMesh
+    let selected:BABYLON.AbstractMesh|undefined
 
     scene.registerBeforeRender(() => {
+
+        
+
         carState?.updateState()
         rayCaster?.update()
+        containerGroup.forEach(container=>{
+            container.stateMachine.updateState()
+        })
         // console.log(rayCaster?.ray.intersectsMeshes(maiziGroup,false));
         scene.meshes.forEach(ele=>{
             ele.showBoundingBox=false
@@ -234,9 +279,21 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
             var mousehit = scene.pickWithRay(mouseray);
 
             if(selected&&mousehit?.pickedMesh?.isDescendantOf(selected)){
+                // if(selected.l)
+                if(scene.getMeshesByTags('foodContainer').includes(selected as BABYLON.Mesh)){
+                    // (selected as BABYLON.TransformNode).position.y +=15
+                    const containerStates= (selected as PhysicalGameObejct).stateMachine.states;
+                    if(containerStates.Mounted.isIn){
+                        (selected as PhysicalGameObejct).stateMachine.states.Mounted.exit()
+                    }else{
+                        (selected as PhysicalGameObejct).stateMachine.states.Mounted.enter(car)
+                    }
+           
+                }
+                
                 (selected as BABYLON.TransformNode).position.y +=5
                 // selected.position.y +=1
-                
+                selected=undefined
             }
         }
 			
