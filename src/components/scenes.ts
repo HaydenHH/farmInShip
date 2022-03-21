@@ -8,7 +8,7 @@ import {PlayerStateMachine} from './playerState'
 import { MakeCarPhysicsObject, MakePhysicsObject,  RayCaster } from './tool'
 import * as OBJBEHAVIOR from './objBehavior'
 import { Container } from 'babylonjs-gui';
-import { PhysicalGameObejct } from './objects';
+import { ContainerGameObject, PhysicalGameObejct } from './objects';
 import { ContainerStateMachine } from './containerState';
 // import * as CANNON from  'cannon'
 
@@ -38,7 +38,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     scene.enablePhysics(new BABYLON.Vector3(0, -110, 0), new BABYLON.AmmoJSPlugin())
     scene.clearColor = BABYLON.Color4.FromHexString('#000000')
 
-    const skyBox = BABYLON.MeshBuilder.CreateBox('skyBox',{size:2000},scene)
+    const skyBox = BABYLON.MeshBuilder.CreateBox('skyBox',{size:1000},scene)
     const skyBoxMtr = new BABYLON.StandardMaterial('skyMtr',scene)
     skyBoxMtr.reflectionTexture = hdrTexture
     skyBoxMtr.backFaceCulling = false;
@@ -70,7 +70,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     camera.position.y = 30
     camera.radius = 60
     camera.rotationOffset = -80;
-    camera.heightOffset = 23
+    camera.heightOffset = 33
     // camera.offse
     // camera.maxZ =1300
 
@@ -177,8 +177,8 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
                 const maizi = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'maizi_.glb', scene)
 
                 const maiziBox = MakePhysicsObject(maizi.meshes, scene, 5, 1)
-                maiziBox.position.x = i * 30 + 50
-                maiziBox.position.z = y * 30 + 50
+                maiziBox.position.x = i * 10 + 50
+                maiziBox.position.z = y * 10 + 50
 
                 maiziGroup.push(maiziBox as BABYLON.DeepImmutable<BABYLON.AbstractMesh>)
 
@@ -186,13 +186,15 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
 
         }
 
-       
-
+        const gateAssets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'gate.glb', scene)
+        const c = new ContainerGameObject('gate',physicsEngine,gateAssets.meshes,scene,5,111.1)
+        c.position.x = 50
+        
         for (let i = 0; i < 3; i++) {
             for (let y = 0; y < 3; y++) {
                 const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmerBox.glb', scene)
 
-                const c = new PhysicalGameObejct('foodContainer',physicsEngine,assets.meshes,scene,1,.1)
+                const c = new ContainerGameObject('foodContainer',physicsEngine,assets.meshes,scene,1,.1)
                 containerGroup.push(c)
                 for(let mesh of c.getChildMeshes()){
                     shadowGenerator?.getShadowMap()?.renderList?.push(mesh);
@@ -235,7 +237,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
         carState?.updateState()
         rayCaster?.update()
         containerGroup.forEach(container=>{
-            container.stateMachine.updateState()
+            container.stateMachine?.updateState()
         })
         // console.log(rayCaster?.ray.intersectsMeshes(maiziGroup,false));
         scene.meshes.forEach(ele=>{
@@ -282,11 +284,11 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
                 // if(selected.l)
                 if(scene.getMeshesByTags('foodContainer').includes(selected as BABYLON.Mesh)){
                     // (selected as BABYLON.TransformNode).position.y +=15
-                    const containerStates= (selected as PhysicalGameObejct).stateMachine.states;
-                    if(containerStates.Mounted.isIn){
-                        (selected as PhysicalGameObejct).stateMachine.states.Mounted.exit()
+                    const containerStates= (selected as ContainerGameObject).stateMachine?.states;
+                    if(containerStates?.Mounted.isIn){
+                        (selected as ContainerGameObject).stateMachine?.states.Mounted.exit()
                     }else{
-                        (selected as PhysicalGameObejct).stateMachine.states.Mounted.enter(car)
+                        (selected as ContainerGameObject).stateMachine?.states.Mounted.enter(car)
                     }
            
                 }

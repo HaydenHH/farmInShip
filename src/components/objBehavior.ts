@@ -21,7 +21,8 @@ const Container_Drop=(obj:BABYLON.AbstractMesh,playerPos:BABYLON.AbstractMesh)=>
 const Container_DropOut=(obj:BABYLON.AbstractMesh)=>{
     obj.position.y += 15
     obj.position.x += 15
-
+    console.log(obj.physicsImpostor);
+    
 
     
    

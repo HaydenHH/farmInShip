@@ -7,16 +7,28 @@ import { PhysicsEngine } from 'babylonjs'
 
 
 class PhysicalGameObejct extends BABYLON.Mesh {
-    stateMachine:StateMachine
+    stateMachine?:StateMachine
     physicsEngine:BABYLON.PhysicsEngine
-    constructor(name:string,physicsEngine:BABYLON.PhysicsEngine,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=3.3){
+    metaMeshes:BABYLON.AbstractMesh[]
+    initScaling:number=1
+    mass:number=1
+    constructor(name:string,physicsEngine:BABYLON.PhysicsEngine,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number=1,mass=3.3){
         super(name,scene)
-        this.stateMachine=new ContainerStateMachine(this)
+        this.name=name
+  
         this.physicsEngine=physicsEngine
+        this.metaMeshes=newMeshes
+        this.initScaling=scaling
+        this.mass= mass
         this.position.y += 0.1
+        this.makePhysical()
 
+         
+
+    }
+    makePhysical(){
         // For all children labeled box (representing colliders), make them invisible and add them as a child of the root object
-        newMeshes.forEach((m, i)=>{
+        this.metaMeshes.forEach((m, i)=>{
             if(m.name.includes("box")||m.name.includes("Box")){
                 m.isVisible = false
                 m.material!.wireframe=true
@@ -26,7 +38,7 @@ class PhysicalGameObejct extends BABYLON.Mesh {
         })
     
         // Add all root nodes within the loaded gltf to the physics root
-        newMeshes.forEach((m, i)=>{
+        this.metaMeshes.forEach((m, i)=>{
             if(m.parent == null){
                 this.addChild(m)
             }
@@ -40,17 +52,23 @@ class PhysicalGameObejct extends BABYLON.Mesh {
                 m.scaling.x = Math.abs(m.scaling.x)
                 m.scaling.y = Math.abs(m.scaling.y)
                 m.scaling.z = Math.abs(m.scaling.z)
-                m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.BoxImpostor, { mass: mass,friction: 13}, scene);
+                m.physicsImpostor = new BABYLON.PhysicsImpostor(m, BABYLON.PhysicsImpostor.BoxImpostor, { mass: this.mass,friction: 13}, this._scene);
                 // m.visibility = 0
             }
         })
         
         // Scale the object and turn it into a physics impsotor
-        this.scaling.scaleInPlace(scaling)
-        this.physicsImpostor = new BABYLON.PhysicsImpostor(this, BABYLON.PhysicsImpostor.BoxImpostor, { mass:mass,friction:1}, scene);
-        BABYLON.Tags.AddTagsTo(this,name) 
-
+        this.scaling.scaleInPlace(this.initScaling)
+        this.physicsImpostor = new BABYLON.PhysicsImpostor(this, BABYLON.PhysicsImpostor.NoImpostor, { mass:this.mass,friction:1}, this._scene);
+        BABYLON.Tags.AddTagsTo(this,this.name)
     }
 }        
 
-export {PhysicalGameObejct}
+class ContainerGameObject extends PhysicalGameObejct{
+    constructor(name:string,physicsEngine:BABYLON.PhysicsEngine,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=1){
+        super(name,physicsEngine,newMeshes,scene,scaling,mass)
+        this.stateMachine=new ContainerStateMachine(this)
+    }
+}
+
+export {PhysicalGameObejct,ContainerGameObject}
