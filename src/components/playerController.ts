@@ -7,7 +7,10 @@ export class inputController {
     private _scene: BABYLON.Scene
 
     private playerStateMachine: PlayerStateMachine
-  	
+    // private leftJoystick = new BABYLON.VirtualJoystick(true);
+    // private  rightJoystick = new BABYLON.VirtualJoystick(false);
+    movespeed = 5
+   
 
     constructor(scene: BABYLON.Scene, stateMachine: PlayerStateMachine) {
 
@@ -30,6 +33,24 @@ export class inputController {
     }
 
     _update() {
+
+        // if(this.leftJoystick.pressed){
+        //     let moveX = this.leftJoystick.deltaPosition.x 
+        //     let moveY = this.leftJoystick.deltaPosition.y 
+            
+        //     if(moveX<0){
+        //         this.playerStateMachine.inState(this.playerStateMachine.states.rotateL)
+        //     }else{
+        //         this.playerStateMachine.inState(this.playerStateMachine.states.rotateR)
+        //     }
+
+        //     moveY>0&&Math.abs(moveY)>0.3 ?  this.playerStateMachine.inState(this.playerStateMachine.states.move): this.playerStateMachine.inState(this.playerStateMachine.states.back)
+
+            
+        // }
+    
+
+        //keyboard
         if (this.inputMap["a"]) {
             // this.playerStateMachine.changeState(this.playerStateMachine.states.rotateL)
             this.playerStateMachine.inState(this.playerStateMachine.states.rotateL)

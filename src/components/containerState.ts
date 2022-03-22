@@ -2,37 +2,35 @@ import { StateMachine,State, MachineStates } from "./playerState";
 import * as BABYLON from 'babylonjs'
 import { PBRMaterial } from "babylonjs";
 import * as OBJBEHAVIOR from './objBehavior'
-
+import { PhysicalGameObejct } from './objects'
 class ContainerMountState implements State{
-    stateMachine: StateMachine;
+    stateMachine: ContainerStateMachine;
     isIn: Boolean=false;
     isTransition?: Boolean | undefined;
     enter(tar:BABYLON.AbstractMesh): void {
-        OBJBEHAVIOR.Container_Drop(this.stateMachine.context as BABYLON.AbstractMesh,tar)
+        OBJBEHAVIOR.Container_Drop(this.stateMachine.context as PhysicalGameObejct,tar as PhysicalGameObejct )
         this.isIn=true
     }
     exit(nextState?: State): Promise<void> {
         return new Promise((res,rej)=>{
-            OBJBEHAVIOR.Container_DropOut(this.stateMachine.context as BABYLON.AbstractMesh)
+            OBJBEHAVIOR.Container_DropOut(this.stateMachine.context)
             this.isIn=false
         })
     }
     update(): void {
         // throw new Error("Method not implemented.");
         // console.log(`it's mounted`);
-        const root = this.stateMachine.context as BABYLON.AbstractMesh
-        const mtr = root.getChildMeshes().find(x=>x.material?.name==='containerType')?.material as PBRMaterial
-        mtr.emissiveColor = BABYLON.Color3.Random()
+        OBJBEHAVIOR.Container_DropOn(this.stateMachine.context)
         
     }
-    constructor(stateMachine:StateMachine){
+    constructor(stateMachine:ContainerStateMachine){
         this.stateMachine=stateMachine
     }
     
 }
 
 class ContainerStateMachine implements StateMachine{
-    context: unknown;
+    context: PhysicalGameObejct;
     states: MachineStates;
     isTransition: Boolean=false;
     inState(state: State): void {
@@ -43,7 +41,7 @@ class ContainerStateMachine implements StateMachine{
             state.isIn&&state.update()
         })
     }
-    constructor(context:unknown){
+    constructor(context:PhysicalGameObejct){
         console.log('obj State');
         this.context=context
         const Mounted = new ContainerMountState(this)

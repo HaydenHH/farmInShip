@@ -8,7 +8,7 @@ import {PlayerStateMachine} from './playerState'
 import { MakeCarPhysicsObject, MakePhysicsObject,  RayCaster } from './tool'
 import * as OBJBEHAVIOR from './objBehavior'
 import { Container } from 'babylonjs-gui';
-import { ContainerGameObject, PhysicalGameObejct } from './objects';
+import { CarGameObject, ContainerGameObject, PhysicalGameObejct } from './objects';
 import { ContainerStateMachine } from './containerState';
 // import * as CANNON from  'cannon'
 
@@ -51,7 +51,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     // var light = new BABYLON.DirectionalLight("light", new BABYLON.Vector3(-1, 1, -1), scene);
     // const camera = new BABYLON.UniversalCamera('cam', new BABYLON.Vector3(39, 30, 9), scene)
     const camera = new BABYLON.FollowCamera('cam', new BABYLON.Vector3(0, 0, 0), scene)
-    camera.attachControl(true)
+    // camera.attachControl(true)
 
     var ScreenWidth = engine.getRenderWidth();
     var ScreenHeight = engine.getRenderHeight();
@@ -79,8 +79,7 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
     defaultPipeline.bloomWeight=0.3
 
    
-
-
+    
 
     let player: BABYLON.AbstractMesh
     let car: BABYLON.AbstractMesh
@@ -142,8 +141,9 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
 
         const carAsset = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmerCar.glb', scene)
         // const car = new PhysicalGameObejct('car',physicsEngine,carAsset.meshes,scene,1,.5)
-        car = MakeCarPhysicsObject(carAsset.meshes, scene, 1,.5)
-        car.position.x = -10
+        // car = MakeCarPhysicsObject(carAsset.meshes, scene, 1,.5)
+        car = new CarGameObject('car',carAsset.meshes, scene, 1,.5)
+        car.position.x = -20
         car.position.z = 25
 
         const carCaster = car.getDescendants().find(x => x.name === 'caster')
@@ -187,14 +187,14 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
         }
 
         const gateAssets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'gate.glb', scene)
-        const c = new ContainerGameObject('gate',physicsEngine,gateAssets.meshes,scene,5,111.1)
+        const c = new ContainerGameObject('gate',gateAssets.meshes,scene,5,111.1)
         c.position.x = 50
         
         for (let i = 0; i < 3; i++) {
             for (let y = 0; y < 3; y++) {
                 const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmerBox.glb', scene)
 
-                const c = new ContainerGameObject('foodContainer',physicsEngine,assets.meshes,scene,1,.1)
+                const c = new ContainerGameObject('foodContainer',assets.meshes,scene,1,.1)
                 containerGroup.push(c)
                 for(let mesh of c.getChildMeshes()){
                     shadowGenerator?.getShadowMap()?.renderList?.push(mesh);
@@ -205,13 +205,22 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
         }
 
 
+        const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmP.glb', scene)
+        const platform=new BABYLON.Mesh('platform')
+        assets.meshes.forEach(mesh=>{
+            platform.addChild(mesh)
+        })
+        
         for (let i = 0; i < 3; i++) {
             for (let y = 0; y < 3; y++) {
-                const assets = await BABYLON.SceneLoader.ImportMeshAsync('', './', 'farmP.glb', scene)
+                
 
-                const c = new PhysicalGameObejct('farmPlatform',physicsEngine,assets.meshes,scene,1,12.1)
-                c.position.x = -i*5
-                c.position.z = -y*5
+                // const c = new PhysicalGameObejct('farmPlatform',assets.meshes,scene,1,12.1)
+                const c= platform.clone('platformIns')
+                console.log(c.getBoundingInfo());
+                
+                c.position.x = -i*10
+                c.position.z = -y*10
                 
             }
 
@@ -247,7 +256,8 @@ const createScene = (engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON
             }
         })
         if(selected){
-            selected.getChildMeshes().filter(x=>x.name.includes('box')||x.name.includes('Box')).forEach(ele=>{
+            
+            selected.getChildMeshes().filter(x=>x.name.includes('box')||x.name.includes('Box')||x.name.includes('platform')).forEach(ele=>{
                 ele.showBoundingBox=true
                 ele.isVisible = true
             })

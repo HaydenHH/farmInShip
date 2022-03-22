@@ -1,22 +1,26 @@
 import * as BABYLON from 'babylonjs'
-import {StateMachine} from './playerState'
+import {PlayerStateMachine, StateMachine} from './playerState'
 import { ContainerStateMachine } from './containerState'
 import { MakePhysicsObject } from './tool'
 import { PhysicsEngine } from 'babylonjs'
 
-
+interface JointInfo{
+    joint:BABYLON.PhysicsJoint
+    target:PhysicalGameObejct
+}
 
 class PhysicalGameObejct extends BABYLON.Mesh {
     stateMachine?:StateMachine
-    physicsEngine:BABYLON.PhysicsEngine
+
     metaMeshes:BABYLON.AbstractMesh[]
     initScaling:number=1
     mass:number=1
-    constructor(name:string,physicsEngine:BABYLON.PhysicsEngine,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number=1,mass=3.3){
+    jointTop?:JointInfo
+    constructor(name:string,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number=1,mass=3.3){
         super(name,scene)
         this.name=name
   
-        this.physicsEngine=physicsEngine
+
         this.metaMeshes=newMeshes
         this.initScaling=scaling
         this.mass= mass
@@ -65,10 +69,17 @@ class PhysicalGameObejct extends BABYLON.Mesh {
 }        
 
 class ContainerGameObject extends PhysicalGameObejct{
-    constructor(name:string,physicsEngine:BABYLON.PhysicsEngine,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=1){
-        super(name,physicsEngine,newMeshes,scene,scaling,mass)
+    constructor(name:string,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=1){
+        super(name,newMeshes,scene,scaling,mass)
         this.stateMachine=new ContainerStateMachine(this)
     }
 }
 
-export {PhysicalGameObejct,ContainerGameObject}
+class CarGameObject extends PhysicalGameObejct{
+    constructor(name:string,newMeshes:BABYLON.AbstractMesh[], scene:BABYLON.Scene, scaling:number,mass=1){
+        super(name,newMeshes,scene,scaling,mass)
+        this.stateMachine = new PlayerStateMachine(this)
+    }
+}
+
+export {PhysicalGameObejct,CarGameObject,ContainerGameObject}
